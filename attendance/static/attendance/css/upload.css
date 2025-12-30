@@ -1,0 +1,45 @@
+/* Upload page styles */
+
+.attendance-rules {
+        background: #F9FAFB;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .attendance-rules h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        color: #374151;
+        font-size: 0.95rem;
+    }
+
+    .rules-table {
+        width: 100%;
+        font-size: 0.85rem;
+        margin-top: 0;
+    }
+
+    .rules-table th {
+        background: #4F46E5;
+        color: white;
+        padding: 0.5rem;
+        text-align: center;
+    }
+
+    .rules-table td {
+        text-align: center;
+        padding: 0.5rem;
+    }
+
+    .rules-table tr:nth-child(even) {
+        background: #F3F4F6;
+    }
+
+    .btn-remote {
+        background: linear-gradient(135deg, #8B5CF6, #7C3AED) !important;
+    }
+
+    .btn-remote:hover {
+        background: linear-gradient(135deg, #7C3AED, #6D28D9) !important;
+    }

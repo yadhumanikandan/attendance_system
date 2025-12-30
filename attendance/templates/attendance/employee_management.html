@@ -1,0 +1,913 @@
+{% extends 'attendance/base.html' %}
+{% load static %}
+
+{% block title %}Employee Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --bg-primary: #f8fafc;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #f1f5f9;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-muted: #94a3b8;
+        --border-color: #e2e8f0;
+        --primary-color: #3b82f6;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .management-container {
+        padding: 20px;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .stats-badges {
+        display: flex;
+        gap: 12px;
+    }
+
+    .stat-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .stat-badge.total {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .stat-badge.inhouse {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .stat-badge.remote {
+        background: #8b5cf6;
+        color: white;
+    }
+
+    /* Filters */
+    .filters-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .search-box {
+        flex: 1;
+        min-width: 200px;
+        max-width: 400px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 10px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background: var(--bg-secondary);
+    }
+
+    .filter-select {
+        padding: 10px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background: var(--bg-secondary);
+        min-width: 140px;
+    }
+
+    .btn-action {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.9;
+    }
+
+    .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+    }
+
+    /* Table */
+    .table-container {
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .employee-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .employee-table th {
+        background: var(--bg-tertiary);
+        padding: 14px 12px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .employee-table th.checkbox-col {
+        width: 40px;
+        text-align: center;
+    }
+
+    .employee-table td {
+        padding: 12px;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+
+    .employee-table tr:hover {
+        background: var(--bg-tertiary);
+    }
+
+    .employee-table tr.selected {
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    /* Type badge */
+    .type-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .type-badge.inhouse {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+    }
+
+    .type-badge.remote {
+        background: rgba(139, 92, 246, 0.15);
+        color: #8b5cf6;
+    }
+
+    /* Status badge */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-badge.active {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+
+    .status-badge.inactive {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    /* Editable cell */
+    .editable-cell {
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .editable-cell:hover {
+        background: var(--bg-tertiary);
+    }
+
+    .editable-cell.editing {
+        padding: 0;
+    }
+
+    .editable-cell input,
+    .editable-cell select {
+        width: 100%;
+        padding: 6px 8px;
+        border: 2px solid var(--primary-color);
+        border-radius: 4px;
+        font-size: 0.875rem;
+        background: var(--bg-primary);
+    }
+
+    .edit-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        background: var(--primary-color);
+        color: white;
+        transition: all 0.2s;
+    }
+
+    .edit-btn:hover {
+        opacity: 0.9;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: #ffffff;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-secondary);
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        background: var(--bg-primary);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    /* Bulk actions bar */
+    .bulk-actions {
+        display: none;
+        padding: 12px 16px;
+        background: var(--primary-color);
+        color: white;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .bulk-actions.active {
+        display: flex;
+    }
+
+    .bulk-actions select,
+    .bulk-actions input {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.875rem;
+    }
+
+    .bulk-apply-btn {
+        padding: 8px 16px;
+        background: white;
+        color: var(--primary-color);
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    /* Toast notification */
+    .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 2000;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.3s;
+    }
+
+    .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    .toast.success {
+        background: #10b981;
+    }
+
+    .toast.error {
+        background: #ef4444;
+    }
+
+    /* Empty cell placeholder */
+    .empty-value {
+        color: var(--text-muted);
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="management-container">
+    <!-- Header -->
+    <div class="page-header">
+        <h1 class="page-title">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Employee Management
+        </h1>
+        <div class="stats-badges">
+            <span class="stat-badge total">Total: {{ total_count }}</span>
+            <span class="stat-badge inhouse">In-House: {{ inhouse_count }}</span>
+            <span class="stat-badge remote">Remote: {{ remote_count }}</span>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by name, email, ID...">
+        </div>
+        <select class="filter-select" id="typeFilter">
+            <option value="">All Types</option>
+            <option value="inhouse">In-House</option>
+            <option value="remote">Remote</option>
+        </select>
+        <select class="filter-select" id="statusFilter">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+        </select>
+        <select class="filter-select" id="departmentFilter">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept }}">{{ dept }}</option>
+            {% endfor %}
+        </select>
+        <select class="filter-select" id="locationFilter">
+            <option value="">All Locations</option>
+            {% for loc in locations %}
+            <option value="{{ loc }}">{{ loc }}</option>
+            {% endfor %}
+        </select>
+        <select class="filter-select" id="teamFilter">
+            <option value="">All Teams</option>
+            {% for t in teams %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Bulk Actions Bar -->
+    <div class="bulk-actions" id="bulkActions">
+        <span id="selectedCount">0 selected</span>
+        <select id="bulkField" onchange="onBulkFieldChange()">
+            <option value="">Select field...</option>
+            <option value="department">Department</option>
+            <option value="location">Location</option>
+            <option value="team">Team</option>
+            <option value="is_active">Status</option>
+        </select>
+        <!-- Text input for location/team -->
+        <input type="text" id="bulkValue" placeholder="Enter value...">
+        <!-- Dropdown for department -->
+        <select id="bulkDeptValue" style="display: none;">
+            <option value="">-- Select --</option>
+            <option value="Sales">Sales</option>
+            <option value="Admin">Admin</option>
+        </select>
+        <!-- Dropdown for status -->
+        <select id="bulkStatusValue" style="display: none;">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+        </select>
+        <button class="bulk-apply-btn" onclick="applyBulkUpdate()">Apply</button>
+        <button class="bulk-apply-btn" onclick="clearSelection()"
+            style="background: #f5f5f5; color: #333;">Cancel</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+        <table class="employee-table">
+            <thead>
+                <tr>
+                    <th class="checkbox-col"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                    <th>Type</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Department</th>
+                    <th>Location</th>
+                    <th>Team</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTableBody">
+                {% for emp in employees %}
+                <tr data-id="{{ emp.id }}" data-type="{{ emp.type }}" data-name="{{ emp.name|lower }}"
+                    data-email="{{ emp.email|lower }}" data-identifier="{{ emp.identifier|lower }}"
+                    data-department="{{ emp.department|lower }}" data-location="{{ emp.location|lower }}"
+                    data-team="{{ emp.team|lower }}"
+                    data-status="{% if emp.is_active %}active{% else %}inactive{% endif %}">
+                    <td class="checkbox-col">
+                        <input type="checkbox" class="row-checkbox" onchange="updateSelection()">
+                    </td>
+                    <td><span class="type-badge {{ emp.type }}">{{ emp.type|title }}</span></td>
+                    <td>{{ emp.identifier }}</td>
+                    <td><strong>{{ emp.name }}</strong></td>
+                    <td>{{ emp.email|default:"-" }}</td>
+                    <td>{{ emp.phone|default:"-" }}</td>
+                    <td>{{ emp.department|default:"-" }}</td>
+                    <td>{{ emp.location|default:"-" }}</td>
+                    <td>{{ emp.team|default:"-" }}</td>
+                    <td>
+                        <span class="status-badge {% if emp.is_active %}active{% else %}inactive{% endif %}">
+                            {% if emp.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="edit-btn" onclick="openEditModal({{ emp.id }}, '{{ emp.type }}')">Edit</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Edit Employee</h3>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editId">
+            <input type="hidden" id="editType">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Type</label>
+                    <input type="text" id="editTypeDisplay" readonly style="background: var(--bg-tertiary);">
+                </div>
+                <div class="form-group">
+                    <label>ID</label>
+                    <input type="text" id="editIdentifier" readonly style="background: var(--bg-tertiary);">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Name *</label>
+                <input type="text" id="editName" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="editEmail">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" id="editPhone">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Department</label>
+                    <select id="editDepartment">
+                        <option value="">-- Select --</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="editLocation" list="locationList">
+                    <datalist id="locationList">
+                        {% for loc in locations %}
+                        <option value="{{ loc }}">
+                            {% endfor %}
+                    </datalist>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Team</label>
+                    <input type="text" id="editTeam" list="teamList">
+                    <datalist id="teamList">
+                        {% for t in teams %}
+                        <option value="{{ t }}">
+                            {% endfor %}
+                    </datalist>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="editIsActive">
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Monthly Salary (AED)</label>
+                    <input type="number" id="editSalary" step="0.01" min="0" placeholder="e.g., 5000.00">
+                </div>
+                <div class="form-group">
+                    <label>Joining Date</label>
+                    <input type="date" id="editJoiningDate">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Leaving Date</label>
+                    <input type="date" id="editLeavingDate">
+                </div>
+                <div class="form-group"></div>
+            </div>
+
+            <div class="form-group">
+                <label>New Portal Password (leave blank to keep current)</label>
+                <input type="password" id="editPassword" placeholder="Enter new password...">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-action btn-secondary" onclick="closeEditModal()">Cancel</button>
+            <button class="btn-action btn-primary" onclick="saveEmployee()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ employees|json_script:"employees-data" }}
+<script>
+    // Employee data from server
+    const employeesData = JSON.parse(document.getElementById('employees-data').textContent);
+
+    // Filter functionality
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const typeFilter = document.getElementById('typeFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+        const deptFilter = document.getElementById('departmentFilter').value.toLowerCase();
+        const locFilter = document.getElementById('locationFilter').value.toLowerCase();
+        const teamFilter = document.getElementById('teamFilter').value.toLowerCase();
+
+        const rows = document.querySelectorAll('#employeeTableBody tr');
+
+        rows.forEach(row => {
+            const name = row.dataset.name || '';
+            const email = row.dataset.email || '';
+            const identifier = row.dataset.identifier || '';
+            const type = row.dataset.type || '';
+            const status = row.dataset.status || '';
+            const dept = row.dataset.department || '';
+            const loc = row.dataset.location || '';
+            const team = row.dataset.team || '';
+
+            const matchesSearch = name.includes(search) || email.includes(search) || identifier.includes(search);
+            const matchesType = !typeFilter || type === typeFilter;
+            const matchesStatus = !statusFilter || status === statusFilter;
+            const matchesDept = !deptFilter || dept === deptFilter;
+            const matchesLoc = !locFilter || loc === locFilter;
+            const matchesTeam = !teamFilter || team === teamFilter;
+
+            row.style.display = (matchesSearch && matchesType && matchesStatus && matchesDept && matchesLoc && matchesTeam) ? '' : 'none';
+        });
+    }
+
+    // Add event listeners for filters
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+    document.getElementById('typeFilter').addEventListener('change', applyFilters);
+    document.getElementById('statusFilter').addEventListener('change', applyFilters);
+    document.getElementById('departmentFilter').addEventListener('change', applyFilters);
+    document.getElementById('locationFilter').addEventListener('change', applyFilters);
+    document.getElementById('teamFilter').addEventListener('change', applyFilters);
+
+    // Selection functionality
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll').checked;
+        const visibleRows = document.querySelectorAll('#employeeTableBody tr:not([style*="display: none"])');
+        visibleRows.forEach(row => {
+            row.querySelector('.row-checkbox').checked = selectAll;
+            row.classList.toggle('selected', selectAll);
+        });
+        updateSelection();
+    }
+
+    function updateSelection() {
+        const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+        const count = checkboxes.length;
+        document.getElementById('selectedCount').textContent = count + ' selected';
+        document.getElementById('bulkActions').classList.toggle('active', count > 0);
+    }
+
+    function clearSelection() {
+        document.querySelectorAll('.row-checkbox').forEach(cb => {
+            cb.checked = false;
+            cb.closest('tr').classList.remove('selected');
+        });
+        document.getElementById('selectAll').checked = false;
+        updateSelection();
+    }
+
+    // Show/hide appropriate input based on selected bulk field
+    function onBulkFieldChange() {
+        const field = document.getElementById('bulkField').value;
+        const textInput = document.getElementById('bulkValue');
+        const deptSelect = document.getElementById('bulkDeptValue');
+        const statusSelect = document.getElementById('bulkStatusValue');
+
+        // Hide all
+        textInput.style.display = 'none';
+        deptSelect.style.display = 'none';
+        statusSelect.style.display = 'none';
+
+        // Show the appropriate one
+        if (field === 'department') {
+            deptSelect.style.display = 'block';
+        } else if (field === 'is_active') {
+            statusSelect.style.display = 'block';
+        } else if (field) {
+            textInput.style.display = 'block';
+        }
+    }
+
+    // Bulk update
+    async function applyBulkUpdate() {
+        const field = document.getElementById('bulkField').value;
+        let value;
+
+        if (!field) {
+            showToast('Please select a field', 'error');
+            return;
+        }
+
+        // Get value from the appropriate input
+        if (field === 'department') {
+            value = document.getElementById('bulkDeptValue').value;
+        } else if (field === 'is_active') {
+            value = document.getElementById('bulkStatusValue').value === 'true';
+        } else {
+            value = document.getElementById('bulkValue').value;
+        }
+
+        const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+        const employees = [];
+
+        selectedRows.forEach(cb => {
+            const row = cb.closest('tr');
+            employees.push({
+                id: parseInt(row.dataset.id),
+                type: row.dataset.type
+            });
+        });
+
+        try {
+            const response = await fetch('/employees/bulk-update/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ employees, updates: { [field]: value } })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(data.error, 'error');
+            }
+        } catch (err) {
+            showToast('Error updating employees', 'error');
+        }
+    }
+
+    // Edit modal
+    function openEditModal(id, type) {
+        const emp = employeesData.find(e => e.id === id && e.type === type);
+        if (!emp) return;
+
+        document.getElementById('editId').value = emp.id;
+        document.getElementById('editType').value = emp.type;
+        document.getElementById('editTypeDisplay').value = emp.type === 'inhouse' ? 'In-House' : 'Remote';
+        document.getElementById('editIdentifier').value = emp.identifier;
+        document.getElementById('editName').value = emp.name;
+        document.getElementById('editEmail').value = emp.email || '';
+        document.getElementById('editPhone').value = emp.phone || '';
+        document.getElementById('editDepartment').value = emp.department || '';
+        document.getElementById('editLocation').value = emp.location || '';
+        document.getElementById('editTeam').value = emp.team || '';
+        document.getElementById('editIsActive').value = emp.is_active ? 'true' : 'false';
+        document.getElementById('editSalary').value = emp.salary || '';
+        document.getElementById('editJoiningDate').value = emp.joining_date || '';
+        document.getElementById('editLeavingDate').value = emp.leaving_date || '';
+        document.getElementById('editPassword').value = '';
+
+        document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+
+    async function saveEmployee() {
+        const salaryVal = document.getElementById('editSalary').value;
+        const data = {
+            id: parseInt(document.getElementById('editId').value),
+            type: document.getElementById('editType').value,
+            name: document.getElementById('editName').value,
+            email: document.getElementById('editEmail').value,
+            phone: document.getElementById('editPhone').value,
+            department: document.getElementById('editDepartment').value,
+            location: document.getElementById('editLocation').value,
+            team: document.getElementById('editTeam').value,
+            is_active: document.getElementById('editIsActive').value === 'true',
+            salary: salaryVal ? parseFloat(salaryVal) : null,
+            joining_date: document.getElementById('editJoiningDate').value,
+            leaving_date: document.getElementById('editLeavingDate').value,
+        };
+
+        const password = document.getElementById('editPassword').value;
+        if (password) {
+            data.portal_password = password;
+        }
+
+        try {
+            const response = await fetch('/employees/update/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Employee updated successfully', 'success');
+                closeEditModal();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(result.error, 'error');
+            }
+        } catch (err) {
+            showToast('Error saving employee', 'error');
+        }
+    }
+
+    // Toast notification
+    function showToast(message, type) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast ' + type + ' show';
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // CSRF token helper
+    function getCookie(name) {
+        let value = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    value = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return value;
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeEditModal();
+    });
+
+    // Close modal on outside click
+    document.getElementById('editModal').addEventListener('click', (e) => {
+        if (e.target.id === 'editModal') closeEditModal();
+    });
+</script>
+{% endblock %}

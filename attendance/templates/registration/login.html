@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Attendance System</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .login-container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 400px;
+            margin: 1rem;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            font-size: 1.75rem;
+            color: #1F2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: #6B7280;
+            font-size: 0.875rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .error-messages {
+            background-color: #FEE2E2;
+            border: 1px solid #FECACA;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .error-messages ul {
+            list-style: none;
+            color: #DC2626;
+            font-size: 0.875rem;
+        }
+
+        .error-messages li {
+            margin-bottom: 0.25rem;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">📊</div>
+            <h1>Attendance System</h1>
+            <p>Please sign in to continue</p>
+        </div>
+
+        {% if form.errors %}
+        <div class="error-messages">
+            <ul>
+                {% for field in form %}
+                {% for error in field.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" autofocus required>
+            </div>
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                <input type="password" name="password" id="id_password" required>
+            </div>
+            <button type="submit" class="login-btn">Sign In</button>
+        </form>
+    </div>
+</body>
+
+</html>

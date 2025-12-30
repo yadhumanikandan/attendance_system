@@ -1,0 +1,173 @@
+{% extends 'attendance/base.html' %}
+{% load attendance_extras %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'attendance/css/remote_report.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Tab Navigation -->
+    <div class="report-tabs">
+        <a href="{% url 'report' %}?month={{ selected_month }}&year={{ selected_year }}" class="tab">In-House Team</a>
+        <a href="{% url 'remote_report' %}?month={{ selected_month }}&year={{ selected_year }}"
+            class="tab active">Remote Team</a>
+    </div>
+
+    <div class="header-actions">
+        <h1>Remote Team Attendance Report</h1>
+        <form method="get" class="filter-form">
+            <div class="filter-group search-group">
+                <input type="text" name="search" placeholder="Search employee name..." value="{{ search_query }}"
+                    class="search-input">
+                <button type="submit" class="search-btn">🔍</button>
+            </div>
+            <div class="filter-group">
+                <select name="month" onchange="this.form.submit()">
+                    {% for m_num, m_name in months %}
+                    <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>
+                        {{ m_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <select name="year" onchange="this.form.submit()">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+                        {{ y }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="show_inactive" value="1" {% if show_inactive %}checked{% endif %}
+                        onchange="this.form.submit()">
+                    <span>Show inactive employees</span>
+                </label>
+            </div>
+            <noscript><button type="submit">Filter</button></noscript>
+        </form>
+    </div>
+
+    <div class="legend-and-actions">
+        <div class="legend">
+            <span class="legend-item"><span class="legend-color green"></span> Present (Full)</span>
+            <span class="legend-item"><span class="legend-color yellow"></span> Half Day</span>
+            <span class="legend-item"><span class="legend-color red"></span> Absent</span>
+            <span class="legend-item"><span class="legend-color holiday"></span> Holiday</span>
+        </div>
+        <div class="download-dropdown">
+            <button class="download-btn" onclick="toggleDownloadMenu()">
+                📥 Download XLSX ▼
+            </button>
+            <div class="download-menu" id="downloadMenu">
+                <a href="javascript:void(0)" onclick="downloadRemoteReport()">📊 All Employees (Summary)</a>
+            </div>
+        </div>
+    </div>
+
+    {% for employee in employees %}
+    <details class="employee-record">
+        <summary>
+            <div class="summary-info">
+                <strong>{{ employee.name }}</strong>
+                <span class="text-muted">({{ employee.extension_id }})</span>
+                {% if not employee.is_active %}<span class="badge inactive" title="Inactive Employee">Inactive</span>{% endif %}
+            </div>
+            <div class="summary-meta">
+                <span class="badge present" title="Present Days">✅ {{ employee.summary.present_days }}</span>
+                <span class="badge half-day" title="Half Days">½ {{ employee.summary.half_days }}</span>
+                <span class="badge absent" title="Absent Days">❌ {{ employee.summary.absent_days }}</span>
+                <span class="badge talk-time" title="Total Talk Time">📞 {{ employee.summary.total_talk_hours }}h</span>
+            </div>
+        </summary>
+        <div class="details-content">
+            <div class="calendar">
+                <div class="calendar-header">
+                    {% for day in weekdays %}
+                    <div class="weekday {% if day == 'Sun' %}holiday-header{% endif %}">{{ day }}</div>
+                    {% endfor %}
+                </div>
+                <div class="calendar-grid">
+                    {% for day in calendar_days %}
+                    {% if day %}
+                    {% with day_info=employee.calendar_data|get_item:day %}
+                    {% if day_info %}
+                    <div
+                        class="calendar-day has-day status-{{ day_info.status }} {% if day_info.is_sunday %}sunday{% endif %} {% if day_info.is_holiday %}holiday{% endif %} {% if day > current_day %}future-day{% endif %}">
+                        <span class="day-number">{{ day }}</span>
+                        {% if day_info.is_sunday or day_info.is_holiday %}
+                        <div class="holiday-text">Holiday</div>
+                        {% elif day > current_day and day_info.status == 'absent' %}
+                        <!-- Future day empty -->
+                        {% else %}
+                        <div class="talk-duration">{{ day_info.talk_minutes }} min</div>
+                        <div class="answered-calls">📞 {{ day_info.answered_calls }} calls</div>
+                        <div class="status-badge-{{ day_info.status }}">
+                            {% if day_info.status == 'present' %}Present{% elif day_info.status == 'half_day' %}Half
+                            Day{% else %}Absent{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    {% else %}
+                    <div class="calendar-day empty"></div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Monthly Summary Stats -->
+            <div class="employee-actions">
+                <button onclick="downloadRemoteEmployeeReport({{ employee.id }}, '{{ employee.name }}')"
+                    class="download-employee-btn">
+                    📥 Download Report
+                </button>
+            </div>
+            <div class="monthly-summary">
+                <div class="summary-stat present">
+                    <span class="stat-icon">✅</span>
+                    <span class="stat-value">{{ employee.summary.present_days }}</span>
+                    <span class="stat-label">Present Days</span>
+                </div>
+                <div class="summary-stat half-day">
+                    <span class="stat-icon">½</span>
+                    <span class="stat-value">{{ employee.summary.half_days }}</span>
+                    <span class="stat-label">Half Days</span>
+                </div>
+                <div class="summary-stat absent">
+                    <span class="stat-icon">❌</span>
+                    <span class="stat-value">{{ employee.summary.absent_days }}</span>
+                    <span class="stat-label">Absent Days</span>
+                </div>
+                <div class="summary-stat talk-time">
+                    <span class="stat-icon">📞</span>
+                    <span class="stat-value">{{ employee.summary.total_talk_hours }}</span>
+                    <span class="stat-label">Total Hours</span>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    {% endfor %}
+</div>
+
+
+{% block extra_js %}
+<script>
+    window.remoteReportConfig = {
+        selectedYear: {{ selected_year }},
+        selectedMonth: {{ selected_month }},
+        showInactive: {% if show_inactive %}true{% else %}false{% endif %},
+        downloadReportUrl: "{% url 'download_remote_report' %}",
+        downloadEmployeeReportUrl: "{% url 'download_remote_employee_report' employee_id=0 %}"
+    };
+</script>
+<script src="{% static 'attendance/js/remote_report.js' %}"></script>
+{% endblock %}
+
+{% endblock %}

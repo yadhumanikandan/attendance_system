@@ -1,0 +1,30 @@
+<!-- Report Filter Dropdowns Component -->
+<!-- DO NOT MODIFY: Spaces around comparison operators (==) are REQUIRED for Django templates -->
+<form method="get" class="filter-form">
+    <div class="filter-group search-group">
+        <input type="text" name="search" placeholder="Search employee name..." value="{{ search_query }}"
+            class="search-input">
+        <button type="submit" class="search-btn">🔍</button>
+    </div>
+    <div class="filter-group">
+        <select name="month" onchange="this.form.submit()">
+            {% for m_num, m_name in months %}
+            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <select name="year" onchange="this.form.submit()">
+            {% for y in years %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group checkbox-group">
+        <label class="checkbox-label">
+            <input type="checkbox" name="show_inactive" value="1" {% if show_inactive %}checked{% endif %} onchange="this.form.submit()">
+            <span>Show inactive employees</span>
+        </label>
+    </div>
+    <noscript><button type="submit">Filter</button></noscript>
+</form>

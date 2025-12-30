@@ -1,0 +1,18 @@
+<!-- Reusable Month/Year Selector Component -->
+<!-- Usage: include 'attendance/includes/portal_month_year_selector.html' -->
+<!-- Required context: months, years, selected_month, selected_year -->
+
+<select name="month" onchange="this.form.submit()">
+    {% for m_num, m_name in months %}
+    <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>
+        {{ m_name }}
+    </option>
+    {% endfor %}
+</select>
+<select name="year" onchange="this.form.submit()">
+    {% for y in years %}
+    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+        {{ y }}
+    </option>
+    {% endfor %}
+</select>

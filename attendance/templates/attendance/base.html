@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCR Attendance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'attendance/css/base.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <header class="main-header">
+        <nav class="main-nav">
+            <!-- Logo -->
+            <a href="{% url 'report' %}" class="nav-logo">
+                <span class="logo-icon">📊</span>
+                <span class="logo-text">TCR <span class="logo-accent">Attendance</span></span>
+            </a>
+
+            <!-- Navigation Links -->
+            <div class="nav-links-container">
+                {% if user.is_authenticated %}
+                <a href="{% url 'report' %}" class="nav-item">Reports</a>
+
+                {% if user.is_superuser %}
+                <a href="{% url 'upload' %}" class="nav-item">Upload</a>
+                <a href="{% url 'employee_management' %}" class="nav-item">Employees</a>
+                <a href="{% url 'payroll_dashboard' %}" class="nav-item">Payroll</a>
+                <a href="{% url 'leave_management' %}" class="nav-item">Leave Requests</a>
+
+                <!-- Requests Dropdown -->
+                <div class="nav-dropdown">
+                    <button class="requests-btn" onclick="toggleRequestsDropdown()">
+                        📝 Requests
+                        {% if nav_pending_count > 0 %}
+                        <span class="badge">{{ nav_pending_count }}</span>
+                        {% endif %}
+                    </button>
+                    <div class="nav-dropdown-menu" id="requestsDropdown">
+                        {% if nav_pending_count > 0 %}
+                        <div class="dropdown-header">
+                            <span>Pending Requests</span>
+                            <span class="dropdown-badge">{{ nav_pending_count }}</span>
+                        </div>
+                        <div class="dropdown-content">
+                            {% for request in nav_pending_requests %}
+                            <div class="dropdown-request">
+                                <div class="dropdown-request-header">
+                                    <strong>{{ request.get_employee_name }}</strong>
+                                    <span class="dropdown-date">{{ request.request_date }}</span>
+                                </div>
+                                <div class="dropdown-request-info">
+                                    <span>🕐 {{ request.leaving_time }}</span>
+                                    {% if request.return_time %}<span>→ {{ request.return_time }}</span>{% endif %}
+                                </div>
+                                <div class="dropdown-request-actions">
+                                    <button class="btn-sm-approve" onclick="openApprovalModal({{ request.id }})">✓
+                                        Approve</button>
+                                    <button class="btn-sm-decline" onclick="declineRequest({{ request.id }})">✗
+                                        Decline</button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="dropdown-empty">
+                            <span>✓ No pending requests</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <a href="{% url 'admin:index' %}" class="nav-item admin-link" target="_blank">⚙️ Admin</a>
+                {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- User Section -->
+            <div class="nav-user">
+                {% if user.is_authenticated %}
+                <div class="user-avatar">{{ user.username|slice:":1"|upper }}</div>
+                <span class="user-name">{{ user.username }}</span>
+                <form action="{% url 'logout' %}" method="post" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-btn" title="Logout">🚪</button>
+                </form>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global Approval Modal -->
+    {% if user.is_superuser %}
+    <div class="approval-modal-overlay" id="approvalModal">
+        <div class="approval-modal">
+            <div class="approval-modal-header">
+                <h3>Approve Request</h3>
+                <button class="modal-close-btn" onclick="closeApprovalModal()">×</button>
+            </div>
+            <div class="approval-modal-body">
+                <!-- Request Info -->
+                <div class="approval-info-section">
+                    <div class="approval-info-row">
+                        <span class="info-label">Employee:</span>
+                        <span class="info-value" id="approvalEmployeeName">-</span>
+                    </div>
+                    <div class="approval-info-row">
+                        <span class="info-label">Date:</span>
+                        <span class="info-value" id="approvalRequestDate">-</span>
+                    </div>
+                    <div class="approval-info-row">
+                        <span class="info-label">Destination:</span>
+                        <span class="info-value" id="approvalDestination">-</span>
+                    </div>
+                    <div class="approval-info-row">
+                        <span class="info-label">Customer:</span>
+                        <span class="info-value" id="approvalCustomer">-</span>
+                    </div>
+                    <div class="approval-info-row" id="approvalReasonRow" style="display: none;">
+                        <span class="info-label">Reason:</span>
+                        <span class="info-value" id="approvalReason">-</span>
+                    </div>
+                </div>
+
+                <!-- Warning for no data -->
+                <div class="no-data-warning" id="noDataWarning" style="display: none;">
+                    <span>⚠️</span>
+                    <span>No attendance data found for this date. The employee may not have checked in yet.</span>
+                </div>
+
+                <!-- Remote employee notice -->
+                <div class="remote-notice" id="remoteNotice" style="display: none;">
+                    <span>ℹ️</span>
+                    <span>This is a remote employee. Approval will mark the request as completed without time
+                        adjustments.</span>
+                </div>
+
+                <!-- Time Edit Section -->
+                <div class="time-edit-section" id="timeEditSection" style="display: none;">
+                    <h4>Attendance Adjustment</h4>
+                    <div class="time-display">
+                        <div class="time-display-row">
+                            <span class="time-label">Original First In:</span>
+                            <span class="time-value" id="originalFirstIn">--:--</span>
+                        </div>
+                        <div class="time-display-row">
+                            <span class="time-label">Original Last Out:</span>
+                            <span class="time-value" id="originalLastOut">--:--</span>
+                        </div>
+                    </div>
+                    <div class="time-edit-inputs">
+                        <div class="form-group">
+                            <label for="newFirstIn">New First In</label>
+                            <input type="time" id="newFirstIn">
+                        </div>
+                        <div class="form-group">
+                            <label for="newLastOut">New Last Out</label>
+                            <input type="time" id="newLastOut">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="approval-modal-actions">
+                    <button type="button" class="btn-cancel-modal" onclick="closeApprovalModal()">Cancel</button>
+                    <button type="button" class="btn-approve-modal" id="approveBtn" onclick="submitApproval()">
+                        ✓ Approve & Update
+                    </button>
+                </div>
+
+                <!-- Message Area -->
+                <div class="approval-message" id="approvalMessage" style="display: none;"></div>
+            </div>
+            <input type="hidden" id="currentRequestId">
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="{% static 'attendance/js/base.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

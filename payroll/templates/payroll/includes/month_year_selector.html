@@ -1,0 +1,12 @@
+{# Month/Year Selector Include - Use this to avoid template syntax issues #}
+{# Usage: {% include 'payroll/includes/month_year_selector.html' %} #}
+<select name="month">
+    {% for m_val, m_name in months %}
+    <option value="{{ m_val }}" {% if m_val == selected_month %}selected{% endif %}>{{ m_name }}</option>
+    {% endfor %}
+</select>
+<select name="year">
+    {% for y in years %}
+    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+</select>

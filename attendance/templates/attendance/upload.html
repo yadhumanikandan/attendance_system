@@ -1,0 +1,74 @@
+{% extends 'attendance/base.html' %}
+
+{% block content %}
+<div class="card">
+    <h1>Upload Attendance File</h1>
+    <p>Upload an Excel file (.xlsx or .xls) containing employee daily attendance.</p>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="date">Select Date:</label>
+            <input type="date" name="date" id="date" required>
+        </div>
+        <div class="form-group">
+            <label for="file">Select Excel File:</label>
+            <input type="file" name="file" id="file" accept=".xlsx, .xls" required>
+        </div>
+        <button type="submit">Upload and Process</button>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <h1>Remote Call Statistics Upload</h1>
+    <p>Upload a CSV file containing remote team call statistics for attendance tracking.</p>
+
+    <div class="attendance-rules">
+        <h3>Attendance Rules (based on Talk Duration)</h3>
+        <table class="rules-table">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Absent</th>
+                    <th>Half Day</th>
+                    <th>Present</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Mon-Thu</td>
+                    <td>&lt; 45 min</td>
+                    <td>45-89 min</td>
+                    <td>≥ 90 min</td>
+                </tr>
+                <tr>
+                    <td>Friday</td>
+                    <td>&lt; 30 min</td>
+                    <td>30-59 min</td>
+                    <td>≥ 60 min</td>
+                </tr>
+                <tr>
+                    <td>Saturday</td>
+                    <td>≤ 20 min</td>
+                    <td>21-44 min</td>
+                    <td>≥ 45 min</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <form method="post" action="{% url 'upload_remote' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="remote_date">Select Date:</label>
+            <input type="date" name="remote_date" id="remote_date" required>
+        </div>
+        <div class="form-group">
+            <label for="remote_file">Select CSV File:</label>
+            <input type="file" name="remote_file" id="remote_file" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn-remote">Upload Remote Statistics</button>
+    </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends 'attendance/base.html' %}
+{% load attendance_extras %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'attendance/css/report.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+<div class="report-container">
+    <!-- Main Content (Left Side) -->
+    <div class="card">
+        <!-- Tab Navigation -->
+        <div class="report-tabs">
+            <a href="{% url 'report' %}?month={{ selected_month }}&year={{ selected_year }}" class="tab active">In-House
+                Team</a>
+            <a href="{% url 'remote_report' %}?month={{ selected_month }}&year={{ selected_year }}" class="tab">Remote
+                Team</a>
+        </div>
+
+        <div class="header-actions">
+            <h1>Attendance Report</h1>
+            <!-- Report Filters - DO NOT EDIT INLINE, modify includes/report_filters.html instead -->
+            {% include 'attendance/includes/report_filters.html' %}
+        </div>
+
+        <div class="legend-and-actions">
+            <div class="legend">
+                <span class="legend-item"><span class="legend-color green"></span> On time</span>
+                <span class="legend-item"><span class="legend-color yellow"></span> Late/Early</span>
+                <span class="legend-item"><span class="legend-color red"></span> Leave</span>
+                <span class="legend-item"><span class="legend-color blue"></span> Approved Leave</span>
+                <span class="legend-item"><span class="legend-color holiday"></span> Holiday</span>
+            </div>
+            <div class="download-dropdown">
+                <button class="download-btn" onclick="toggleDownloadMenu()">
+                    📥 Download XLSX ▼
+                </button>
+                <div class="download-menu" id="downloadMenu">
+                    <a href="javascript:void(0)" onclick="downloadReport()">📊 All Employees (Summary)</a>
+                </div>
+            </div>
+        </div>
+
+        {% for employee in employees %}
+        <details class="employee-record">
+            <summary>
+                <div class="summary-info">
+                    <strong>{{ employee.name }}</strong>
+                    <span class="text-muted">({{ employee.person_id }})</span>
+                    {% if not employee.is_active %}<span class="badge inactive"
+                        title="Inactive Employee">Inactive</span>{% endif %}
+                </div>
+                <div class="summary-meta">
+                    <span class="badge working" title="Working Days">💼 {{ employee.summary.total_working }}</span>
+                    <span class="badge paid-leave" title="Paid Leave Days">🌟 {{ employee.summary.paid_leaves }}</span>
+                    <span class="badge leave" title="Leave Days">🏖️ {{ employee.summary.leave_days }}</span>
+                    <span class="badge late" title="Late Arrivals">⏰ {{ employee.summary.late_days }}</span>
+                    <span class="badge half-day" title="Half Days">½ {{ employee.summary.half_days }}</span>
+                </div>
+            </summary>
+            <div class="details-content">
+                <div class="calendar">
+                    <div class="calendar-header">
+                        {% for day in weekdays %}
+                        <div class="weekday {% if day == 'Sun' %}holiday-header{% endif %}">{{ day }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="calendar-grid">
+                        {% for day in calendar_days %}
+                        {% if day %}
+                        {% with day_info=employee.calendar_data|get_item:day %}
+                        {% if day_info %}
+                        <div class="calendar-day has-day status-{{ day_info.status }} {% if day_info.is_sunday %}sunday{% endif %} {% if day_info.is_holiday %}holiday{% endif %} {% if day > current_day %}future-day{% endif %} {% if user.is_superuser %}editable{% endif %}"
+                            {% if user.is_superuser %}
+                            onclick="openEditModal({{ employee.id }}, '{{ employee.name }}', {{ day }}, '{{ day_info.record.first_in|time:'H:i'|default:'' }}', '{{ day_info.record.last_out|time:'H:i'|default:'' }}')"
+                            {% endif %}>
+                            <span class="day-number">{{ day }}</span>
+                            {% if day_info.status == 'absent' %}
+                            {% if day <= current_day %}<div class="leave-text">Leave
+                        </div>{% endif %}
+                        {% elif day_info.status == 'paid_leave' %}
+                        <div class="paid-leave-text">Paid Leave</div>
+                        {% elif day_info.status == 'holiday' %}
+                        <div class="no-work">Holiday</div>
+                        {% else %}
+                        <div class="work-hours">{{ day_info.record.work_duration }}</div>
+                        <div class="time-info">
+                            <span>In: {{ day_info.record.first_in|time:"H:i" }}</span>
+                            <span>Out: {{ day_info.record.last_out|time:"H:i" }}</span>
+                        </div>
+                        {% endif %}
+                        {% if user.is_superuser %}<span class="edit-icon">✏️</span>{% endif %}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    {% else %}
+                    <div class="calendar-day empty"></div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Monthly Summary Stats -->
+            <div class="employee-actions">
+                <button onclick="downloadEmployeeReport({{ employee.id }}, '{{ employee.name }}')"
+                    class="download-employee-btn">
+                    📥 Download Report
+                </button>
+            </div>
+            <div class="monthly-summary">
+                <div class="summary-stat working">
+                    <span class="stat-icon">💼</span>
+                    <span class="stat-value">{{ employee.summary.total_working }}</span>
+                    <span class="stat-label">Working Days</span>
+                </div>
+                <div class="summary-stat leave">
+                    <span class="stat-icon">🏖️</span>
+                    <span class="stat-value">{{ employee.summary.leave_days }}</span>
+                    <span class="stat-label">Leave Days</span>
+                </div>
+                <div class="summary-stat paid-leave">
+                    <span class="stat-icon">🌟</span>
+                    <span class="stat-value">{{ employee.summary.paid_leaves }}</span>
+                    <span class="stat-label">Paid Leaves</span>
+                </div>
+                <div class="summary-stat late">
+                    <span class="stat-icon">⏰</span>
+                    <span class="stat-value">{{ employee.summary.late_days }}</span>
+                    <span class="stat-label">Late Arrivals</span>
+                </div>
+                <div class="summary-stat half-day">
+                    <span class="stat-icon">½</span>
+                    <span class="stat-value">{{ employee.summary.half_days }}</span>
+                    <span class="stat-label">Half Days</span>
+                </div>
+            </div>
+    </div>
+    </details>
+    {% empty %}
+    <p>No employees found. Please upload a file.</p>
+    {% endfor %}
+</div>
+
+
+</div><!-- End .report-container -->
+
+<!-- Edit Attendance Modal -->
+{% if user.is_superuser %}
+<div class="edit-modal-overlay" id="editModal">
+    <div class="edit-modal">
+        <h3>Edit Attendance</h3>
+        <div class="modal-subtitle">
+            <span id="modalEmployeeName"></span> - <span id="modalDate"></span>
+        </div>
+        <form id="editAttendanceForm">
+            <input type="hidden" id="editEmployeeId" name="employee_id">
+            <input type="hidden" id="editDate" name="date">
+            <div class="form-group">
+                <label for="editFirstIn">First In Time</label>
+                <input type="time" id="editFirstIn" name="first_in">
+            </div>
+            <div class="form-group">
+                <label for="editLastOut">Last Out Time</label>
+                <input type="time" id="editLastOut" name="last_out">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-save" id="saveBtn">Save</button>
+            </div>
+            <div class="modal-message" id="modalMessage" style="display: none;"></div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+
+
+
+{% block extra_js %}
+<script>
+    // Report page configuration (Django template variables)
+    window.reportConfig = {
+        selectedYear: {{ selected_year }},
+    selectedMonth: { { selected_month } },
+    showInactive: {% if show_inactive %} true{% else %} false{% endif %},
+    downloadReportUrl: "{% url 'download_report' %}",
+        downloadEmployeeReportUrl: "{% url 'download_employee_report' employee_id=0 %}",
+            updateAttendanceUrl: "{% url 'update_attendance' %}"
+    };
+</script>
+<script src="{% static 'attendance/js/report.js' %}"></script>
+{% endblock %}
+
+{% endblock %}

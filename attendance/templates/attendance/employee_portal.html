@@ -1,0 +1,298 @@
+{% load attendance_extras %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Attendance - TCR Employee Portal</title>
+
+    <link rel="stylesheet" href="{% static 'attendance/css/employee_portal.css' %}">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-info">
+            <span class="icon">📅</span>
+            <div>
+                <h1>My Attendance</h1>
+                <div class="employee-name">{{ employee_name }} ({{ employee_type }})</div>
+            </div>
+            <div class="header-actions">
+                {% if employee_type == 'In-House' %}
+                <button class="leave-btn" onclick="openLeaveModal()">
+                    📝 Apply Leave
+                </button>
+                <button class="early-leave-btn" onclick="openEarlyLeaveModal()">
+                    🚗 On Duty Request
+                </button>
+                {% endif %}
+                <a href="{% url 'employee_logout' %}" class="logout-btn">🚪 Logout</a>
+            </div>
+    </header>
+
+    <div class="container">
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <h2>{{ month_name }} {{ selected_year }}</h2>
+            <form method="get" class="filter-form">
+                {% include 'attendance/includes/portal_month_year_selector.html' %}
+            </form>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <span class="legend-item"><span class="legend-color green"></span> On time</span>
+            <span class="legend-item"><span class="legend-color yellow"></span> Late/Half Day</span>
+            <span class="legend-item"><span class="legend-color red"></span> Leave/Absent</span>
+            <span class="legend-item"><span class="legend-color blue"></span> Approved Leave</span>
+            <span class="legend-item"><span class="legend-color purple"></span> Holiday</span>
+        </div>
+
+        <!-- Calendar -->
+        <div class="calendar-card">
+            <div class="calendar-header">
+                {% for day in weekdays %}
+                <div class="weekday {% if day == 'Sun' %}holiday-header{% endif %}">{{ day }}</div>
+                {% endfor %}
+            </div>
+            <div class="calendar-grid">
+                {% for day in calendar_days %}
+                {% if day %}
+                {% with day_info=calendar_data|get_item:day %}
+                {% if day_info %}
+                <div class="calendar-day status-{{ day_info.status }}">
+                    <span class="day-number">{{ day }}</span>
+                    {% if day_info.status == 'holiday' %}
+                    <span class="status-text holiday">Holiday</span>
+                    {% elif day_info.status == 'absent' %}
+                    {% elif day_info.status == 'absent' %}
+                    <span class="status-text leave">Leave</span>
+                    {% elif day_info.status == 'paid_leave' %}
+                    <span class="status-text paid-leave">Approved Leave</span>
+                    {% elif day_info.record %}
+                    {% if employee_type == 'Remote' %}
+                    <!-- Remote employee: show call stats like admin report -->
+                    <div class="work-hours">{{ day_info.talk_minutes }} min</div>
+                    <div class="call-count">📞 {{ day_info.answered_calls }} calls</div>
+                    <div class="status-badge status-badge-{{ day_info.status }}">
+                        {% if day_info.status == 'green' %}Present{% elif day_info.status == 'yellow' %}Half Day{% else
+                        %}Absent{% endif %}
+                    </div>
+                    {% else %}
+                    <!-- In-house employee: show work duration and times -->
+                    {% if day_info.record.work_duration %}
+                    <div class="work-hours">{{ day_info.record.work_duration }}</div>
+                    <div class="time-info">
+                        <span>In: {{ day_info.record.first_in|time:"H:i" }}</span>
+                        <span>Out: {{ day_info.record.last_out|time:"H:i" }}</span>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="calendar-day">
+                    <span class="day-number">{{ day }}</span>
+                </div>
+                {% endif %}
+                {% endwith %}
+                {% else %}
+                <div class="calendar-day empty"></div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="summary-section">
+            <h3>Monthly Summary</h3>
+            <div class="summary-grid">
+                {% if employee_type == 'In-House' %}
+                <div class="summary-stat working">
+                    <span class="stat-icon">💼</span>
+                    <span class="stat-value">{{ summary.total_working }}</span>
+                    <span class="stat-label">Total Working</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="stat-icon">✅</span>
+                    <span class="stat-value">{{ summary.full_days }}</span>
+                    <span class="stat-label">Full Days</span>
+                </div>
+                <div class="summary-stat half-day">
+                    <span class="stat-icon">½</span>
+                    <span class="stat-value">{{ summary.half_days }}</span>
+                    <span class="stat-label">Half Days</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="stat-icon">🗓️</span>
+                    <span class="stat-value">{{ summary.holidays }}</span>
+                    <span class="stat-label">Holidays</span>
+                </div>
+                <div class="summary-stat leave">
+                    <span class="stat-icon">🏖️</span>
+                    <span class="stat-value">{{ summary.leave_days }}</span>
+                    <span class="stat-label">Leave Days</span>
+                </div>
+                <div class="summary-stat late">
+                    <span class="stat-icon">⏰</span>
+                    <span class="stat-value">{{ summary.late_days }}</span>
+                    <span class="stat-label">Late Arrivals</span>
+                </div>
+                <!-- Paid Leave Stats -->
+                <div class="summary-stat paid-leave">
+                    <span class="stat-icon">🌟</span>
+                    <span class="stat-value">{{ summary.paid_leave_days }}</span>
+                    <span class="stat-label">Paid Leave Days</span>
+                </div>
+                {% else %}
+                <div class="summary-stat working">
+                    <span class="stat-icon">💼</span>
+                    <span class="stat-value">{{ summary.total_working }}</span>
+                    <span class="stat-label">Total Working</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="stat-icon">✅</span>
+                    <span class="stat-value">{{ summary.present_days }}</span>
+                    <span class="stat-label">Present Days</span>
+                </div>
+                <div class="summary-stat half-day">
+                    <span class="stat-icon">½</span>
+                    <span class="stat-value">{{ summary.half_days }}</span>
+                    <span class="stat-label">Half Days</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="stat-icon">🗓️</span>
+                    <span class="stat-value">{{ summary.holidays }}</span>
+                    <span class="stat-label">Holidays</span>
+                </div>
+                <div class="summary-stat leave">
+                    <span class="stat-icon">🏖️</span>
+                    <span class="stat-value">{{ summary.absent_days }}</span>
+                    <span class="stat-label">Absent Days</span>
+                </div>
+                <div class="summary-stat late">
+                    <span class="stat-icon">📞</span>
+                    <span class="stat-value">{{ summary.total_talk_hours }}</span>
+                    <span class="stat-label">Talk Hours</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- On Duty Request Modal -->
+        <div class="modal-overlay" id="earlyLeaveModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>🚗 On Duty Request</h3>
+                    <button class="modal-close" onclick="closeEarlyLeaveModal()">&times;</button>
+                </div>
+                <form id="earlyLeaveForm" onsubmit="submitEarlyLeave(event)">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="text" value="Today" disabled class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Leaving Time *</label>
+                            <input type="time" name="leaving_time" required class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Expected Return Time</label>
+                            <input type="time" name="return_time" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Destination *</label>
+                            <input type="text" name="destination" placeholder="Where are you going?" required
+                                class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Customer Name *</label>
+                            <input type="text" name="customer_name" placeholder="Customer/Client you're meeting"
+                                required class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Reason (Optional)</label>
+                            <textarea name="reason" rows="3" placeholder="Additional details..."
+                                class="form-input"></textarea>
+                        </div>
+                        <div class="form-message" id="formMessage"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-cancel" onclick="closeEarlyLeaveModal()">Cancel</button>
+                        <button type="submit" class="btn-submit">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Leave Request Modal -->
+        <div class="modal-overlay" id="leaveModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>📝 Apply for Leave</h3>
+                    <button class="modal-close" onclick="closeLeaveModal()">&times;</button>
+                </div>
+                <form id="leaveForm" onsubmit="submitLeaveRequest(event)" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Leave Type *</label>
+                            <select name="leave_type" id="leaveType" required class="form-input"
+                                onchange="toggleDocumentField()">
+                                <option value="">Select leave type...</option>
+                                <option value="annual">Annual Leave</option>
+                                <option value="casual">Casual Leave</option>
+                                <option value="sick">Sick Leave (Document Required)</option>
+                                <option value="medical">Medical Leave (Document Required)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Start Date *</label>
+                                <input type="date" name="start_date" id="startDate" required class="form-input"
+                                    onchange="calculateDays()">
+                            </div>
+                            <div class="form-group">
+                                <label>End Date *</label>
+                                <input type="date" name="end_date" id="endDate" required class="form-input"
+                                    onchange="calculateDays()">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Days: <span id="daysCount">0</span></label>
+                        </div>
+                        <div class="form-group" id="documentGroup" style="display: none;">
+                            <label>Supporting Document *</label>
+                            <input type="file" name="document" id="leaveDocument" class="form-input"
+                                accept=".pdf,.jpg,.jpeg,.png">
+                            <small class="form-hint">Upload medical certificate or supporting document (PDF, JPG,
+                                PNG)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Reason *</label>
+                            <textarea name="reason" rows="3"
+                                placeholder="Please provide the reason for your leave request..." required
+                                class="form-input"></textarea>
+                        </div>
+                        <div class="form-message" id="leaveFormMessage"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-cancel" onclick="closeLeaveModal()">Cancel</button>
+                        <button type="submit" class="btn-submit">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script>
+            window.portalConfig = {
+                selectedYear: {{ selected_year }},
+            selectedMonth: { { selected_month } },
+            employeeType: "{{ employee_type }}"
+    };
+        </script>
+        <script src="{% static 'attendance/js/employee_portal.js' %}?v=1.1"></script>
+</body>
+
+</html>
