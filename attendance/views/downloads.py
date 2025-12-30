@@ -136,7 +136,7 @@ def download_report(request):
         # But MonthlySummary stored `leave_days` (after subtraction). 
         # So summary.leave_days should be correct (unpaid).
         
-        leave_days = summary.leave_days
+        leave_days = max(0, summary.leave_days - real_paid_leave_count)
         working_days_total = full_days + (half_days * 0.5) + total_holidays + real_paid_leave_count
         
         row = [
@@ -261,6 +261,10 @@ def download_employee_report(request, employee_id):
     paid_leave_days = 0
     late_arrivals = 0
     holidays_count = 0
+    
+    # Default shift times (can be customized per employee if ShiftHistory is used)
+    emp_shift_start = time(9, 0)  # 9:00 AM
+    emp_shift_end = time(18, 0)   # 6:00 PM
 
     month_start = datetime.date(selected_year, selected_month, 1)
     month_end = datetime.date(selected_year, selected_month, days_in_month)
