@@ -1,37 +1,42 @@
 """
 Production settings for attendance_project.
-For internal network deployment on Ubuntu 24.04 with MySQL.
-
-INSTRUCTIONS:
-1. Copy this file or edit the values below directly
-2. Update the SECRET_KEY, database password, and ALLOWED_HOSTS
+Loads sensitive values from .env file for security.
 """
 
 from pathlib import Path
 
+# Load .env file (simple method - no extra library needed)
 BASE_DIR = Path(__file__).resolve().parent.parent
+env_file = BASE_DIR / '.env'
+
+# Read .env file into a dictionary
+env_vars = {}
+if env_file.exists():
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                env_vars[key.strip()] = value.strip().strip('"').strip("'")
 
 # ============================================
-# EDIT THESE VALUES FOR YOUR SERVER
+# SETTINGS LOADED FROM .env FILE
 # ============================================
+SECRET_KEY = env_vars.get('SECRET_KEY', 'change-me-in-env-file')
+ALLOWED_HOSTS = env_vars.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+DB_PASSWORD = env_vars.get('DB_PASSWORD', 'change-me-in-env-file')
 
-# Generate a new key: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
-SECRET_KEY = 'CHANGE-THIS-TO-A-RANDOM-50-CHARACTER-STRING'
-
-# Add your server's IP address here
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'YOUR_SERVER_IP']
-
-# MySQL Database Settings
+# ============================================
+# DATABASE SETTINGS
+# ============================================
 DB_NAME = 'attendance_db'
 DB_USER = 'attendance_user'
-DB_PASSWORD = 'YOUR_DATABASE_PASSWORD'
 DB_HOST = 'localhost'
 DB_PORT = '3306'
 
 # ============================================
-# DO NOT EDIT BELOW THIS LINE
+# DJANGO SETTINGS (DO NOT EDIT)
 # ============================================
-
 DEBUG = False
 
 INSTALLED_APPS = [
