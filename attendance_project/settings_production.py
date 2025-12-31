@@ -1,26 +1,39 @@
 """
 Production settings for attendance_project.
-This file extends the base settings with production-specific configurations.
+For internal network deployment on Ubuntu 24.04 with MySQL.
+
+INSTRUCTIONS:
+1. Copy this file or edit the values below directly
+2. Update the SECRET_KEY, database password, and ALLOWED_HOSTS
 """
 
-import os
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# Generate a new key: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'your-production-secret-key-here')
+# ============================================
+# EDIT THESE VALUES FOR YOUR SERVER
+# ============================================
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# Generate a new key: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+SECRET_KEY = 'CHANGE-THIS-TO-A-RANDOM-50-CHARACTER-STRING'
+
+# Add your server's IP address here
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'YOUR_SERVER_IP']
+
+# MySQL Database Settings
+DB_NAME = 'attendance_db'
+DB_USER = 'attendance_user'
+DB_PASSWORD = 'YOUR_DATABASE_PASSWORD'
+DB_HOST = 'localhost'
+DB_PORT = '3306'
+
+# ============================================
+# DO NOT EDIT BELOW THIS LINE
+# ============================================
+
 DEBUG = False
 
-# Add your server's IP address and hostname here
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-
-
-# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -62,17 +75,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'attendance_project.wsgi.application'
 
-
-# Database - MySQL Configuration
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DB_NAME', 'attendance_db'),
-        'USER': os.environ.get('DB_USER', 'attendance_user'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'your_password_here'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '3306'),
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
         'OPTIONS': {
             'charset': 'utf8mb4',
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -80,8 +90,6 @@ DATABASES = {
     }
 }
 
-
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -89,26 +97,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
-# Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Dubai'  # Set to your timezone
+TIME_ZONE = 'Asia/Dubai'
 USE_I18N = True
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files (uploaded documents)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Authentication URLs
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/report/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

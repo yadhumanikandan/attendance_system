@@ -7,13 +7,6 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/attendance
 Environment="DJANGO_SETTINGS_MODULE=attendance_project.settings_production"
-Environment="DJANGO_SECRET_KEY=your-secret-key-here"
-Environment="DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,YOUR_SERVER_IP"
-Environment="DB_NAME=attendance_db"
-Environment="DB_USER=attendance_user"
-Environment="DB_PASSWORD=your_db_password"
-Environment="DB_HOST=localhost"
-Environment="DB_PORT=3306"
 ExecStart=/var/www/attendance/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8000 attendance_project.wsgi:application
 Restart=always
 RestartSec=3
